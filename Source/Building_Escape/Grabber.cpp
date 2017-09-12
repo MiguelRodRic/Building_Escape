@@ -74,6 +74,8 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
 	FVector LineTracedEnd = GetReachLineEnd();
+	if (!PhysicsHandle) { return;  }
+
 	// If  the physics handle is attached move the object holded
 	if (PhysicsHandle->GrabbedComponent) {
 		PhysicsHandle->SetTargetLocation(LineTracedEnd);
