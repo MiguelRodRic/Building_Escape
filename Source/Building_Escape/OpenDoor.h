@@ -45,4 +45,5 @@ private:
 	AActor *ActorThatOpens;
 	AActor *Owner;
 
+	float GetTotalMassOfActorsOnPlate();
 };
