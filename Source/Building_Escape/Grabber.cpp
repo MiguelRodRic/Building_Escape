@@ -29,7 +29,6 @@ void UGrabber::BeginPlay()
 void UGrabber::FindInputComponent() {
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent) {
-		UE_LOG(LogTemp, Warning, TEXT("Input Component found"));
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
@@ -41,7 +40,6 @@ void UGrabber::FindInputComponent() {
 
 
 void UGrabber::Grab() {
-	UE_LOG(LogTemp, Warning, TEXT("Grabbing"));
 
 	//Line trace and see if we reach any actors with physics body collision channel set
 	auto HitResult = GetFirstPhysicsBodyInReach();
@@ -55,9 +53,6 @@ void UGrabber::Grab() {
 }
 
 void UGrabber::Release() {
-	UE_LOG(LogTemp, Warning, TEXT("Releasing"));
-
-	//TODO release physics handle
 	PhysicsHandle->ReleaseComponent();
 }
 
@@ -65,10 +60,7 @@ void UGrabber::FindPhysicsHandleComponent()
 {
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 
-	if (PhysicsHandle) {
-		//AActor *PhysicsActor;
-	}
-	else {
+	if (PhysicsHandle == nullptr) {
 		UE_LOG(LogTemp, Error, TEXT("%s    No physics handle component found!"),
 			*GetOwner()->GetName());
 	}
@@ -80,19 +72,8 @@ void UGrabber::FindPhysicsHandleComponent()
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-
-	//Get player viewpoint
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation);
-
-	//Reporting viewpoint 
-	/*UE_LOG(LogTemp, Warning, TEXT("Position: %s.  Rotation: %s"), *PlayerViewPointLocation.ToString(), *PlayerViewPointRotation.ToString());*/
-
-
-	FVector LineTracedEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-	//Draw view line
+	
+	FVector LineTracedEnd = GetReachLineEnd();
 	// If  the physics handle is attached move the object holded
 	if (PhysicsHandle->GrabbedComponent) {
 		PhysicsHandle->SetTargetLocation(LineTracedEnd);
@@ -100,8 +81,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	
 }
 
-FHitResult UGrabber::GetFirstPhysicsBodyInReach() const
-{
+FVector UGrabber::GetReachLineEnd() {
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
 
@@ -109,28 +89,38 @@ FHitResult UGrabber::GetFirstPhysicsBodyInReach() const
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerViewPointLocation,
 		OUT PlayerViewPointRotation);
 
-	//Reporting viewpoint 
-	/*UE_LOG(LogTemp, Warning, TEXT("Position: %s.  Rotation: %s"), *PlayerViewPointLocation.ToString(), *PlayerViewPointRotation.ToString());*/
+
+	return PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
+}
+
+FVector UGrabber::GetReachLineStart() {
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+
+	//Get player viewpoint
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation);
 
 
-	FVector LineTracedEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
-	//Draw view line
-	//DrawDebugLine(GetWorld(), PlayerViewPointLocation, LineTracedEnd, FColor(255, 0, 0),
-	//	false, 0.f, 0, 10.f);
+	return PlayerViewPointLocation;
+}
+
+FHitResult UGrabber::GetFirstPhysicsBodyInReach()
+{
 
 	//Setup query parameters
 	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
 
 	//Line trace (Ray casting)
-	FHitResult Hit;
-	GetWorld()->LineTraceSingleByObjectType(OUT Hit, PlayerViewPointLocation, LineTracedEnd,
+	FHitResult HitResult;
+	GetWorld()->LineTraceSingleByObjectType(OUT HitResult, GetReachLineStart(), GetReachLineEnd(),
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody), TraceParameters);
 
-	AActor *HitActor = Hit.GetActor();
+	AActor *HitActor = HitResult.GetActor();
 	if (HitActor) {
 		UE_LOG(LogTemp, Warning, TEXT("Detected: %s"), *HitActor->GetName());
 	}
 
-	return Hit;
+	return HitResult;
 }
 

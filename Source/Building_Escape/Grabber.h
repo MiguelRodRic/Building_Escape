@@ -29,6 +29,10 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	FVector GetReachLineEnd();
+
+	FVector GetReachLineStart();
+
 private: 
 	float Reach = 100.f;
 	
@@ -40,9 +44,12 @@ private:
 
 	void Release();
 
+	// Find attached physics handle
 	void FindPhysicsHandleComponent();
 
+	//Setup attached input component
 	void FindInputComponent();
 
-	FHitResult GetFirstPhysicsBodyInReach() const;
+	//Return hit for first physics body in reach
+	FHitResult GetFirstPhysicsBodyInReach();
 };
